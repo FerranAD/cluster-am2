@@ -75,47 +75,6 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
 fi
 
-# -----------------------------------------------------------------------
-# Optionally add InfiniBand support services on master node (Section 3.5)
-# -----------------------------------------------------------------------
-if [[ ${enable_ib} -eq 1 ]];then
-     yum -y groupinstall "InfiniBand Support"
-     udevadm trigger --type=devices --action=add
-     systemctl restart rdma-load-modules@infiniband.service
-fi
-
-# Optionally enable opensm subnet manager
-if [[ ${enable_opensm} -eq 1 ]];then
-     yum -y install opensm
-     systemctl enable opensm
-     systemctl start opensm
-fi
-
-# Optionally enable IPoIB interface on SMS
-if [[ ${enable_ipoib} -eq 1 ]];then
-     # Enable ib0
-     cp /opt/ohpc/pub/examples/network/centos/ifcfg-ib0 /etc/sysconfig/network-scripts
-     perl -pi -e "s/master_ipoib/${sms_ipoib}/" /etc/sysconfig/network-scripts/ifcfg-ib0
-     perl -pi -e "s/ipoib_netmask/${ipoib_netmask}/" /etc/sysconfig/network-scripts/ifcfg-ib0
-     echo "[main]"   >  /etc/NetworkManager/conf.d/90-dns-none.conf
-     echo "dns=none" >> /etc/NetworkManager/conf.d/90-dns-none.conf
-     systemctl start NetworkManager
-fi
-
-# ----------------------------------------------------------------------
-# Optionally add Omni-Path support services on master node (Section 3.6)
-# ----------------------------------------------------------------------
-if [[ ${enable_opa} -eq 1 ]];then
-     yum -y install opa-basic-tools
-fi
-
-# Optionally enable OPA fabric manager
-if [[ ${enable_opafm} -eq 1 ]];then
-     yum -y install opa-fm
-     systemctl enable opafm
-     systemctl start opafm
-fi
-
 # -----------------------------------------------------------
 # Complete basic Warewulf setup for master node (Section 3.7)
 # -----------------------------------------------------------
@@ -158,7 +117,6 @@ echo "server ${sms_ip} iburst" >> $CHROOT/etc/chrony.conf
 yum -y --installroot=$CHROOT install kernel-`uname -r`
 yum -y --installroot=$CHROOT install lmod-ohpc
 
-# ENS HEM QUEDAT AQUI
 #
 # ----------------------------------------------
 # Customize system configuration (Section 3.8.3)
@@ -178,69 +136,12 @@ exportfs -a
 systemctl restart nfs-server
 systemctl enable nfs-server
 
-# Update basic slurm configuration if additional computes defined
-if [ ${num_computes} -gt 4 ];then
-   perl -pi -e "s/^NodeName=(\S+)/NodeName=${compute_prefix}[1-${num_computes}]/" /etc/slurm/slurm.conf
-   perl -pi -e "s/^PartitionName=normal Nodes=(\S+)/PartitionName=normal Nodes=${compute_prefix}[1-${num_computes}]/" /etc/slurm/slurm.conf
-fi
-
 # -----------------------------------------
 # Additional customizations (Section 3.8.4)
 # -----------------------------------------
 
-# Add IB drivers to compute image
-if [[ ${enable_ib} -eq 1 ]];then
-     yum -y --installroot=$CHROOT groupinstall "InfiniBand Support"
-fi
-# Add Omni-Path drivers to compute image
-if [[ ${enable_opa} -eq 1 ]];then
-     yum -y --installroot=$CHROOT install opa-basic-tools
-     yum -y --installroot=$CHROOT install libpsm2
-fi
-
-# Update memlock settings
-perl -pi -e 's/# End of file/\* soft memlock unlimited\n$&/s' /etc/security/limits.conf
-perl -pi -e 's/# End of file/\* hard memlock unlimited\n$&/s' /etc/security/limits.conf
-perl -pi -e 's/# End of file/\* soft memlock unlimited\n$&/s' $CHROOT/etc/security/limits.conf
-perl -pi -e 's/# End of file/\* hard memlock unlimited\n$&/s' $CHROOT/etc/security/limits.conf
-
 # Enable slurm pam module
 echo "account    required     pam_slurm.so" >> $CHROOT/etc/pam.d/sshd
-
-if [[ ${enable_beegfs_client} -eq 1 ]];then
-     wget -P /etc/yum.repos.d https://www.beegfs.io/release/beegfs_7.2.1/dists/beegfs-rhel8.repo
-     yum -y install kernel-devel gcc elfutils-libelf-devel
-     yum -y install beegfs-client beegfs-helperd beegfs-utils
-     perl -pi -e "s/^buildArgs=-j8/buildArgs=-j8 BEEGFS_OPENTK_IBVERBS=1/"  /etc/beegfs/beegfs-client-autobuild.conf
-     /opt/beegfs/sbin/beegfs-setup-client -m ${sysmgmtd_host}
-     systemctl start beegfs-helperd
-     systemctl start beegfs-client
-     wget -P $CHROOT/etc/yum.repos.d https://www.beegfs.io/release/beegfs_7.2.1/dists/beegfs-rhel8.repo
-     yum -y --installroot=$CHROOT install beegfs-client beegfs-helperd beegfs-utils
-     perl -pi -e "s/^buildEnabled=true/buildEnabled=false/" $CHROOT/etc/beegfs/beegfs-client-autobuild.conf
-     rm -f $CHROOT/var/lib/beegfs/client/force-auto-build
-     chroot $CHROOT systemctl enable beegfs-helperd beegfs-client
-     cp /etc/beegfs/beegfs-client.conf $CHROOT/etc/beegfs/beegfs-client.conf
-     echo "drivers += beegfs" >> /etc/warewulf/bootstrap.conf
-fi
-
-# Enable Optional packages
-
-if [[ ${enable_lustre_client} -eq 1 ]];then
-     # Install Lustre client on master
-     yum -y install lustre-client-ohpc
-     # Enable lustre in WW compute image
-     yum -y --installroot=$CHROOT install lustre-client-ohpc
-     mkdir $CHROOT/mnt/lustre
-     echo "${mgs_fs_name} /mnt/lustre lustre defaults,localflock,noauto,x-systemd.automount 0 0" >> $CHROOT/etc/fstab
-     # Enable o2ib for Lustre
-     echo "options lnet networks=o2ib(ib0)" >> /etc/modprobe.d/lustre.conf
-     echo "options lnet networks=o2ib(ib0)" >> $CHROOT/etc/modprobe.d/lustre.conf
-     # mount Lustre client on master
-     mkdir /mnt/lustre
-     mount -t lustre -o localflock ${mgs_fs_name} /mnt/lustre
-fi
-
 
 # -------------------------------------------------------
 # Configure rsyslog on SMS and computes (Section 3.8.4.7)
@@ -284,17 +185,8 @@ if [[ ${enable_clustershell} -eq 1 ]];then
      cd /etc/clustershell/groups.d
      mv local.cfg local.cfg.orig
      echo "adm: ${sms_name}" > local.cfg
-     echo "compute: ${compute_prefix}[1-${num_computes}]" >> local.cfg
+     echo "compute: cpu[1-4],gpu[1-4]" >> local.cfg
      echo "all: @adm,@compute" >> local.cfg
-fi
-
-if [[ ${enable_genders} -eq 1 ]];then
-     # Install genders
-     yum -y install genders-ohpc
-     echo -e "${sms_name}\tsms" > /etc/genders
-     for ((i=0; i<$num_computes; i++)) ; do
-        echo -e "${c_name[$i]}\tcompute,bmc=${c_bmc[$i]}"
-     done >> /etc/genders
 fi
 
 if [[ ${enable_magpie} -eq 1 ]];then
@@ -302,34 +194,12 @@ if [[ ${enable_magpie} -eq 1 ]];then
      yum -y install magpie-ohpc
 fi
 
-# Optionally, enable conman and configure
-if [[ ${enable_ipmisol} -eq 1 ]];then
-     yum -y install conman-ohpc
-     for ((i=0; i<$num_computes; i++)) ; do
-        echo -n 'CONSOLE name="'${c_name[$i]}'" dev="ipmi:'${c_bmc[$i]}'" '
-        echo 'ipmiopts="'U:${bmc_username},P:${IPMI_PASSWORD:-undefined},W:solpayloadsize'"'
-     done >> /etc/conman.conf
-     systemctl enable conman
-     systemctl start conman
-fi
-
-# Optionally, enable nhc and configure
+# Enable nhc and configure (health check)
 yum -y install nhc-ohpc
 yum -y --installroot=$CHROOT install nhc-ohpc
 
 echo "HealthCheckProgram=/usr/sbin/nhc" >> /etc/slurm/slurm.conf
 echo "HealthCheckInterval=300" >> /etc/slurm/slurm.conf  # execute every five minutes
-
-# Optionally, update compute image to support geopm
-if [[ ${enable_geopm} -eq 1 ]];then
-     export kargs="${kargs} intel_pstate=disable"
-fi
-
-if [[ ${enable_geopm} -eq 1 ]];then
-     yum -y --installroot=$CHROOT install kmod-msr-safe-ohpc
-     yum -y --installroot=$CHROOT install msr-safe-ohpc
-     yum -y --installroot=$CHROOT install msr-safe-slurm-ohpc
-fi
 
 # ----------------------------
 # Import files (Section 3.8.5)
@@ -338,11 +208,6 @@ wwsh file import /etc/passwd
 wwsh file import /etc/group
 wwsh file import /etc/shadow 
 wwsh file import /etc/munge/munge.key
-
-if [[ ${enable_ipoib} -eq 1 ]];then
-     wwsh file import /opt/ohpc/pub/examples/network/centos/ifcfg-ib0.ww
-     wwsh -y file set ifcfg-ib0.ww --path=/etc/sysconfig/network-scripts/ifcfg-ib0
-fi
 
 # --------------------------------------
 # Assemble bootstrap image (Section 3.9)

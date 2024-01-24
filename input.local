@@ -45,6 +45,11 @@ epel_repo_dir="${epel_repo_dir:-/install/epel}"
 eth_provision="eno2"
 
 # Flags for optional installation/configuration
+enable_nagios="1"
+enable_clustershell="1"
+enable_magpie="1"
+enable_intel_packages="1"
+
 enable_ib="0"
 enable_opa="${enable_opa:-0}"
 enable_opafm="${enable_opafm:-0}"
@@ -52,25 +57,20 @@ enable_mpi_defaults="${enable_mpi_defaults:-1}"
 enable_mpich_ucx="${enable_mpich_ucx:-1}"
 enable_ipoib="${enable_ipoib:-0}"
 
-enable_clustershell="${enable_clustershell:-0}"
 enable_ipmisol="${enable_ipmisol:-0}"
 enable_opensm="${enable_opensm:-0}"
 enable_genders="${enable_genders:-0}"
-enable_magpie="${enable_magpie:-0}"
 enable_kargs="${enable_kargs:-0}"
 enable_beegfs_client="${enable_beegfs_client:-0}"
 enable_lustre_client="${enable_lustre_client:-0}"
 enable_mrsh="${enable_mrsh:-0}"
-enable_nagios="${enable_nagios:-0}"
 enable_powerman="${enable_powerman:-0}"
 enable_pmix="${enable_pmix:-0}"
-enable_geopm="${enable_geopm:-0}"
 
 # Vendor compiler package flags
-enable_intel_packages="${enable_intel_packages:-0}"
 enable_arm1_packages="${enable_arm1_packages:-0}"
 
-nagios_web_password="${nagios_web_password:-unknown}"
+nagios_web_password="root"
 update_slurm_nodeconfig="1"
 slurm_node_config="NodeName=gpu[1-4] Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN\nNodeName=cpu[1-4] Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN\nPartitionName=gpu Nodes=gpu[1-4] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE\nPartitionName=cpu Nodes=cpu[1-4] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE\n"
 
@@ -115,15 +115,6 @@ c_bmc[3]=10.16.1.4
 
 # additional arguments to enable optional arguments for bootstrap kernel
 kargs="${kargs:-acpi_pad.disable=1}"
-
-# BeeGFS repository URL
-beegfs_repo="${beegfs_repo:-https://www.beegfs.io/release/beegfs_6/dists/beegfs-rhel7.repo}"
-
-# BeeGFS sysMgmtdHost
-sysmgmtd_host="${sysmgmtd_host:-172.17.1.16}"
-
-# Lustre MGS mount name
-mgs_fs_name="${mgs_fs_name:-192.168.100.254@o2ib:/lustre1}"
 
 # Subnet netmask for IPoIB network
 ipoib_netmask="${ipoib_netmask:-255.255.0.0}"
