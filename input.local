@@ -26,6 +26,7 @@ enable_clustershell="1"
 enable_magpie="1"
 enable_intel_packages="1"
 enable_mpi_defaults="1"
+enable_kargs="1"
 
 nagios_web_password="sd4nvi3u"
 
