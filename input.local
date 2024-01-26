@@ -1,10 +1,3 @@
-# -*-sh-*-
-# ------------------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------------------
-# Template input file to define local variable settings for use with
-# an OpenHPC installation recipe.
-# ------------------------------------------------------------------------------------------------
-
 # ---------------------------
 # SMS (master) node settings
 # ---------------------------
@@ -21,25 +14,8 @@ sms_eth_internal="eno2"
 # Subnet netmask for internal cluster network
 internal_netmask="255.255.0.0"
 
-# Local ntp server for tiecho ${sms_ip} ${sms_name} >> /etc/hostsme synchronization
+# Local ntp server for time
 ntp_server="0.centos.pool.ntp.org"
-
-# BMC user credentials for use by IPMI
-bmc_username="${bmc_username:-unknown}"
-bmc_password="${bmc_password:-unknown}"
-
-# Additional time to wait for compute nodes to provision (seconds)
-provision_wait="${provision_wait:-180}"
-
-# Local domainname for cluster (xCAT recipe only)
-domain_name="${domain_name:-local}"
-
-# Path to copy of OS ISO image (xCAT recipe only)
-iso_path="${iso_path:-}"
-
-# Path to local repository web roots (xCAT recipe only)
-ohpc_repo_dir="${ohpc_repo_dir:-/install/ohpc}"
-epel_repo_dir="${epel_repo_dir:-/install/epel}"
 
 # Provisioning interface used by compute hosts (Warewulf recipe only)
 eth_provision="eno2"
@@ -49,81 +25,59 @@ enable_nagios="1"
 enable_clustershell="1"
 enable_magpie="1"
 enable_intel_packages="1"
+enable_mpi_defaults="1"
 
-enable_ib="0"
-enable_opa="${enable_opa:-0}"
-enable_opafm="${enable_opafm:-0}"
-enable_mpi_defaults="${enable_mpi_defaults:-1}"
-enable_mpich_ucx="${enable_mpich_ucx:-1}"
-enable_ipoib="${enable_ipoib:-0}"
+nagios_web_password="sd4nvi3u"
 
-enable_ipmisol="${enable_ipmisol:-0}"
-enable_opensm="${enable_opensm:-0}"
-enable_genders="${enable_genders:-0}"
-enable_kargs="${enable_kargs:-0}"
-enable_beegfs_client="${enable_beegfs_client:-0}"
-enable_lustre_client="${enable_lustre_client:-0}"
-enable_mrsh="${enable_mrsh:-0}"
-enable_powerman="${enable_powerman:-0}"
-enable_pmix="${enable_pmix:-0}"
-
-# Vendor compiler package flags
-enable_arm1_packages="${enable_arm1_packages:-0}"
-
-nagios_web_password="root"
 update_slurm_nodeconfig="1"
-slurm_node_config="NodeName=gpu[1-4] Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN\nNodeName=cpu[1-4] Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN\nPartitionName=gpu Nodes=gpu[1-4] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE\nPartitionName=cpu Nodes=cpu[1-4] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE\n"
+
+# additional arguments to enable optional arguments for bootstrap kernel
+kargs="acpi_pad.disable=1"
 
 # -------------------------
 # compute node settings
 # -------------------------
 
-# total number of computes
-num_computes="${num_computes:-4}"
+# CPU nodes
+cpu_name=()
+cpu_ip=()
+cpu_mac=()
 
-# regex and starting prefix that matches defined compute hostnames
-compute_regex="${compute_regex:-c*}"
-compute_prefix="${compute_prefix:-c}"
+# Individual CPU node declarations
+cpu_name[0]="cpu1"
+cpu_ip[0]="172.30.0.101"
+cpu_mac[0]="08:9E:01:82:A8:49"
 
-# compute hostnames
-c_name[0]=c1
-c_name[1]=c2
-c_name[2]=c3
-c_name[3]=c4
+cpu_name[1]="cpu2"
+cpu_ip[1]="172.30.0.102"
+cpu_mac[1]="08:9E:01:82:A8:40"
 
-# compute node IP addresses
-c_ip[0]=172.16.1.1
-c_ip[1]=172.16.1.2
-c_ip[2]=172.16.1.3
-c_ip[3]=172.16.1.4
+cpu_name[2]="cpu3"
+cpu_ip[2]="172.30.0.103"
+cpu_mac[2]="08:9E:01:82:A6:75"
 
-# compute node MAC addreses for provisioning interface
-c_mac[0]=00:1a:2b:3c:4f:56
-c_mac[1]=00:1a:2b:3c:4f:56
-c_mac[2]=00:1a:2b:3c:4f:56
-c_mac[3]=00:1a:2b:3c:4f:56
+cpu_name[3]="cpu4"
+cpu_ip[3]="172.30.0.104"
+cpu_mac[3]="08:9E:01:82:A9:A8"
 
-# compute node BMC addresses
-c_bmc[0]=10.16.1.1
-c_bmc[1]=10.16.1.2
-c_bmc[2]=10.16.1.3
-c_bmc[3]=10.16.1.4
+# GPU nodes
+gpu_name=()
+gpu_ip=()
+gpu_mac=()
 
-#-------------------
-# Optional settings
-#-------------------
+# Individual GPU node declarations
+gpu_name[0]="gpu1"
+gpu_ip[0]="172.30.0.105"
+gpu_mac[0]="D8:BB:C1:8A:AA:85"
 
-# additional arguments to enable optional arguments for bootstrap kernel
-kargs="${kargs:-acpi_pad.disable=1}"
+gpu_name[1]="gpu2"
+gpu_ip[1]="172.30.0.106"
+gpu_mac[1]="D8:BB:C1:8A:AA:95"
 
-# Subnet netmask for IPoIB network
-ipoib_netmask="${ipoib_netmask:-255.255.0.0}"
+gpu_name[2]="gpu3"
+gpu_ip[2]="172.30.0.107"
+gpu_mac[2]="D8:BB:C1:8A:AA:05"
 
-# IPoIB address for SMS server
-sms_ipoib="${sms_ipoib:-192.168.0.1}"
-
-# IPoIB addresses for computes
-c_ipoib[0]=192.168.1.1		            
-c_ipoib[1]=192.168.1.2
-c_ipoib[2]=192.168.1.3
-c_ipoib[3]=192.168.1.4
+gpu_name[3]="gpu4"
+gpu_ip[3]="172.30.0.108"
+gpu_mac[3]="D8:BB:C1:8A:A9:D9"

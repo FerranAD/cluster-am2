@@ -1,3 +1,4 @@
+
 #!/usr/bin/bash
 # -----------------------------------------------------------------------------------------
 #  Example Installation Script Template
@@ -20,7 +21,7 @@ echo ${sms_ip} ${sms_name} >> /etc/hosts
 
 # Set local vars
 
-inputFile=${OHPC_INPUT_LOCAL:-/opt/ohpc/pub/doc/recipes/rocky9/input.local}
+inputFile="input.local"
 
 if [ ! -e ${inputFile} ];then
    echo "Error: Unable to access local input file -> ${inputFile}"
@@ -51,6 +52,7 @@ systemctl stop firewalld
 # ------------------------------------------------------------
 yum -y install ohpc-base
 yum -y install ohpc-warewulf
+
 # Enable NTP services on SMS host
 systemctl enable chronyd.service
 echo "local stratum 10" >> /etc/chrony.conf
@@ -73,6 +75,14 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      perl -pi -e "s/^NodeName=.+$/#/" /etc/slurm/slurm.conf
      perl -pi -e "s/^PartitionName=.+$/#/" /etc/slurm/slurm.conf
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
+     for i in "${!cpu_names[@]}"; do
+        echo "NodeName=${node_name} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
+     done
+     for i in "${!gpu_names[@]}"; do
+        echo "NodeName=${node_name} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
+     done
+     echo "PartitionName=cpu Nodes=cpu[1-${#cpu_names[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
+     echo "PartitionName=gpu Nodes=gpu[1-${#gpu_names[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
 fi
 
 # -----------------------------------------------------------
@@ -141,7 +151,7 @@ systemctl enable nfs-server
 # -----------------------------------------
 
 # Enable slurm pam module
-echo "account    required     pam_slurm.so" >> $CHROOT/etc/pam.d/sshd
+# echo "account    required     pam_slurm.so" >> $CHROOT/etc/pam.d/sshd
 
 # -------------------------------------------------------
 # Configure rsyslog on SMS and computes (Section 3.8.4.7)
@@ -217,146 +227,44 @@ echo "drivers += updates/kernel/" >> $WW_CONF
 wwbootstrap `uname -r`
 # Assemble VNFS
 wwvnfs --chroot $CHROOT
+
+# It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
+# yum install -y perl
+
 # Add hosts to cluster
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$
 wwsh -y file import /tmp/network.$$ --name network
 wwsh -y file set network --path /etc/sysconfig/network --mode=0644 --uid=0
-for ((i=0; i<$num_computes; i++)) ; do
-   wwsh -y node new ${c_name[i]} --ipaddr=${c_ip[i]} --hwaddr=${c_mac[i]} -D ${eth_provision}
-done
-# Add hosts to cluster (Cont.)
-wwsh -y provision set "${compute_regex}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network
 
-# Optionally, define IPoIB network settings (required if planning to mount Lustre over IB)
-if [[ ${enable_ipoib} -eq 1 ]];then
-     for ((i=0; i<$num_computes; i++)) ; do
-        wwsh -y node set ${c_name[$i]} -D ib0 --ipaddr=${c_ipoib[$i]} --netmask=${ipoib_netmask}
-     done
-     wwsh -y provision set "${compute_regex}" --fileadd=ifcfg-ib0.ww
-fi
+for ((i=0; i<${#cpu_name[@]}; i++)); do
+    wwsh -y node new "${cpu_name[$i]}" --ipaddr="${cpu_ip[$i]}" --hwaddr="${cpu_mac[$i]}" -D eno2
+    wwsh provision set --postnetdown=1 "${cpu_name[$i]}" -y
+    wwsh provision set "${cpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network
+done
+
+for ((i=0; i<${#gpu_name[@]}; i++)); do
+    wwsh -y node new "${gpu_name[$i]}" --ipaddr="${gpu_ip[$i]}" --hwaddr="${gpu_mac[$i]}" -D eno2
+    wwsh provision set --postnetdown=1 "${gpu_name[$i]}" -y
+    wwsh provision set "${gpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network
+done
+
 
 systemctl restart dhcpd
 wwsh pxe update
 
-# Optionally, enable user namespaces
-export kargs="${kargs} namespace.unpriv_enable=1"
-echo "user.max_user_namespaces=15076" >> $CHROOT/etc/sysctl.conf
 wwvnfs --chroot $CHROOT
 
-# Optionally, enable console redirection
-if [[ ${enable_ipmisol} -eq 1 ]];then
-     wwsh -y provision set "${compute_regex}" --console=ttyS1,115200
-fi
-
 # Optionally, add arguments to bootstrap kernel
-if [[ ${enable_kargs} -eq 1 ]]; then
-wwsh -y provision set "${compute_regex}" --kargs="${kargs}"
-fi
-
-# ---------------------------------
-# Boot compute nodes (Section 3.10)
-# ---------------------------------
-for ((i=0; i<${num_computes}; i++)) ; do
-   ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis power reset
+for i in "${!gpu_names[@]}"; do
+    if [[ ${enable_kargs} -eq 1 ]]; then
+        wwsh -y provision set "${gpu_names[$i]}" --kargs="${kargs}"
+    fi
 done
 
-# ---------------------------------------
-# Install Development Tools (Section 4.1)
-# ---------------------------------------
-yum -y install ohpc-autotools
-yum -y install EasyBuild-ohpc
-yum -y install hwloc-ohpc
-yum -y install spack-ohpc
-yum -y install valgrind-ohpc
+for i in "${!cpu_names[@]}"; do
+    if [[ ${enable_kargs} -eq 1 ]]; then
+        wwsh -y provision set "${cpu_names[$i]}" --kargs="${kargs}"
+    fi
+done
 
-# -------------------------------
-# Install Compilers (Section 4.2)
-# -------------------------------
-yum -y install gnu12-compilers-ohpc
-
-# --------------------------------
-# Install MPI Stacks (Section 4.3)
-# --------------------------------
-if [[ ${enable_mpi_defaults} -eq 1 ]];then
-     yum -y install openmpi4-pmix-gnu12-ohpc mpich-ofi-gnu12-ohpc
-fi
-
-if [[ ${enable_ib} -eq 1 ]];then
-     yum -y install mvapich2-gnu12-ohpc
-fi
-if [[ ${enable_opa} -eq 1 ]];then
-     yum -y install mvapich2-psm2-gnu12-ohpc
-fi
-
-# ---------------------------------------
-# Install Performance Tools (Section 4.4)
-# ---------------------------------------
-yum -y install ohpc-gnu12-perf-tools
-
-if [[ ${enable_geopm} -eq 1 ]];then
-     yum -y install ohpc-gnu12-geopm
-fi
-yum -y install lmod-defaults-gnu12-openmpi4-ohpc
-
-# ---------------------------------------------------
-# Install 3rd Party Libraries and Tools (Section 4.6)
-# ---------------------------------------------------
-yum -y install ohpc-gnu12-serial-libs
-yum -y install ohpc-gnu12-io-libs
-yum -y install ohpc-gnu12-python-libs
-yum -y install ohpc-gnu12-runtimes
-if [[ ${enable_mpi_defaults} -eq 1 ]];then
-     yum -y install ohpc-gnu12-mpich-parallel-libs
-     yum -y install ohpc-gnu12-openmpi4-parallel-libs
-fi
-if [[ ${enable_ib} -eq 1 ]];then
-     yum -y install ohpc-gnu12-mvapich2-parallel-libs
-fi
-if [[ ${enable_opa} -eq 1 ]];then
-     yum -y install ohpc-gnu12-mvapich2-parallel-libs
-fi
-
-# ----------------------------------------
-# Install Intel oneAPI tools (Section 4.7)
-# ----------------------------------------
-if [[ ${enable_intel_packages} -eq 1 ]];then
-     yum -y install intel-oneapi-toolkit-release-ohpc
-     rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-     yum -y install intel-compilers-devel-ohpc
-     yum -y install intel-mpi-devel-ohpc
-     if [[ ${enable_opa} -eq 1 ]];then
-          yum -y install mvapich2-psm2-intel-ohpc
-     fi
-     yum -y install openmpi4-pmix-intel-ohpc
-     yum -y install ohpc-intel-serial-libs
-     yum -y install ohpc-intel-geopm
-     yum -y install ohpc-intel-io-libs
-     yum -y install ohpc-intel-perf-tools
-     yum -y install ohpc-intel-python3-libs
-     yum -y install ohpc-intel-mpich-parallel-libs
-     yum -y install ohpc-intel-mvapich2-parallel-libs
-     yum -y install ohpc-intel-openmpi4-parallel-libs
-     yum -y install ohpc-intel-impi-parallel-libs
-fi
-
-# -------------------------------------------------------------
-# Allow for optional sleep to wait for provisioning to complete
-# -------------------------------------------------------------
-sleep ${provision_wait}
-
-# ------------------------------------
-# Resource Manager Startup (Section 5)
-# ------------------------------------
-systemctl enable munge
-systemctl enable slurmctld
-systemctl start munge
-systemctl start slurmctld
-pdsh -w $compute_prefix[1-${num_computes}] systemctl start munge
-pdsh -w $compute_prefix[1-${num_computes}] systemctl start slurmd
-
-# Optionally, generate nhc config
-pdsh -w c1 "/usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c 
-useradd -m test
-wwsh file resync passwd shadow group
-sleep 2
-pdsh -w $compute_prefix[1-${num_computes}] /warewulf/bin/wwgetfiles
+echo "\n\nDone! Boot compute nodes and once they are up, run stage2.sh. Use status.sh to check on the nodes."
