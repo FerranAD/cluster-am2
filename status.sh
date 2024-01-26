@@ -1,11 +1,11 @@
-for i in "${!gpu_names[@]}"; do
+for i in "${!gpu_name[@]}"; do
     if [[ ${enable_kargs} -eq 1 ]]; then
-        pdsh -w "${gpu_names[$i]}" uptime
+        pdsh -w "${gpu_name[$i]}" uptime
     fi
 done
 
-for i in "${!cpu_names[@]}"; do
+for i in "${!cpu_name[@]}"; do
     if [[ ${enable_kargs} -eq 1 ]]; then
-        pdsh -w "${cpu_names[$i]}" uptime
+        pdsh -w "${cpu_name[$i]}" uptime
     fi
 done

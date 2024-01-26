@@ -74,14 +74,14 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      perl -pi -e "s/^NodeName=.+$/#/" /etc/slurm/slurm.conf
      perl -pi -e "s/^PartitionName=.+$/#/" /etc/slurm/slurm.conf
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
-     for i in "${!cpu_names[@]}"; do
+     for i in "${!cpu_name[@]}"; do
         echo "NodeName=${node_name} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
-     for i in "${!gpu_names[@]}"; do
+     for i in "${!gpu_name[@]}"; do
         echo "NodeName=${node_name} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
-     echo "PartitionName=cpu Nodes=cpu[1-${#cpu_names[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
-     echo "PartitionName=gpu Nodes=gpu[1-${#gpu_names[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
+     echo "PartitionName=cpu Nodes=cpu[1-${#cpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
+     echo "PartitionName=gpu Nodes=gpu[1-${#gpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
 fi
 
 # -----------------------------------------------------------
@@ -254,15 +254,15 @@ wwsh pxe update
 wwvnfs --chroot $CHROOT
 
 # Optionally, add arguments to bootstrap kernel
-for i in "${!gpu_names[@]}"; do
+for i in "${!gpu_name[@]}"; do
     if [[ ${enable_kargs} -eq 1 ]]; then
-        wwsh -y provision set "${gpu_names[$i]}" --kargs="${kargs}"
+        wwsh -y provision set "${gpu_name[$i]}" --kargs="${kargs}"
     fi
 done
 
-for i in "${!cpu_names[@]}"; do
+for i in "${!cpu_name[@]}"; do
     if [[ ${enable_kargs} -eq 1 ]]; then
-        wwsh -y provision set "${cpu_names[$i]}" --kargs="${kargs}"
+        wwsh -y provision set "${cpu_name[$i]}" --kargs="${kargs}"
     fi
 done
 
@@ -341,26 +341,26 @@ systemctl enable slurmctld
 systemctl start munge
 systemctl start slurmctld
 
-for i in "${!cpu_names[@]}"; do
-     pdsh -w ${cpu_names[$i]} systemctl start munge
-     pdsh -w ${cpu_names[$i]} systemctl start slurmd
-     pdsh -w ${cpu_names[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+for i in "${!cpu_name[@]}"; do
+     pdsh -w ${cpu_name[$i]} systemctl start munge
+     pdsh -w ${cpu_name[$i]} systemctl start slurmd
+     pdsh -w ${cpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
-for i in "${!gpu_names[@]}"; do
-     pdsh -w ${gpu_names[$i]} systemctl start munge
-     pdsh -w ${gpu_names[$i]} systemctl start slurmd
-     pdsh -w ${gpu_names[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+for i in "${!gpu_name[@]}"; do
+     pdsh -w ${gpu_name[$i]} systemctl start munge
+     pdsh -w ${gpu_name[$i]} systemctl start slurmd
+     pdsh -w ${gpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
 useradd -m test
 wwsh file resync passwd shadow group
 sleep 2
 
-for i in "${!cpu_names[@]}"; do
-     pdsh -w ${cpu_names[$i]} /warewulf/bin/wwgetfiles
+for i in "${!cpu_name[@]}"; do
+     pdsh -w ${cpu_name[$i]} /warewulf/bin/wwgetfiles
 done
 
-for i in "${!gpu_names[@]}"; do
-     pdsh -w ${gpu_names[$i]} /warewulf/bin/wwgetfiles
+for i in "${!gpu_name[@]}"; do
+     pdsh -w ${gpu_name[$i]} /warewulf/bin/wwgetfiles
 done

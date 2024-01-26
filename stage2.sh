@@ -68,26 +68,26 @@ systemctl enable slurmctld
 systemctl start munge
 systemctl start slurmctld
 
-for i in "${!cpu_names[@]}"; do
-     pdsh -w ${cpu_names[$i]} systemctl start munge
-     pdsh -w ${cpu_names[$i]} systemctl start slurmd
-     pdsh -w ${cpu_names[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+for i in "${!cpu_name[@]}"; do
+     pdsh -w ${cpu_name[$i]} systemctl start munge
+     pdsh -w ${cpu_name[$i]} systemctl start slurmd
+     pdsh -w ${cpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
-for i in "${!gpu_names[@]}"; do
-     pdsh -w ${gpu_names[$i]} systemctl start munge
-     pdsh -w ${gpu_names[$i]} systemctl start slurmd
-     pdsh -w ${gpu_names[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+for i in "${!gpu_name[@]}"; do
+     pdsh -w ${gpu_name[$i]} systemctl start munge
+     pdsh -w ${gpu_name[$i]} systemctl start slurmd
+     pdsh -w ${gpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
 useradd -m test
 wwsh file resync passwd shadow group
 sleep 2
 
-for i in "${!cpu_names[@]}"; do
-     pdsh -w ${cpu_names[$i]} /warewulf/bin/wwgetfiles
+for i in "${!cpu_name[@]}"; do
+     pdsh -w ${cpu_name[$i]} /warewulf/bin/wwgetfiles
 done
 
-for i in "${!gpu_names[@]}"; do
-     pdsh -w ${gpu_names[$i]} /warewulf/bin/wwgetfiles
+for i in "${!gpu_name[@]}"; do
+     pdsh -w ${gpu_name[$i]} /warewulf/bin/wwgetfiles
 done
