@@ -39,8 +39,8 @@ fi
 systemctl disable firewalld
 systemctl stop firewalld
 
-yum install http://repos.openhpc.community/OpenHPC/3/EL_9/x86_64/ohpc-release-3-1.el9.x86_64.rpm
-yum install dnf-plugins-core
+yum install -y http://repos.openhpc.community/OpenHPC/3/EL_9/x86_64/ohpc-release-3-1.el9.x86_64.rpm
+yum install -y dnf-plugins-core
 yum config-manager --set-enabled crb
 
 # Verify OpenHPC repository has been enabled before proceeding
@@ -234,7 +234,7 @@ wwbootstrap `uname -r`
 wwvnfs --chroot $CHROOT
 
 # It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
-# yum install -y perl
+yum install -y perl
 
 # Add hosts to cluster
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$

@@ -228,7 +228,7 @@ wwbootstrap `uname -r`
 wwvnfs --chroot $CHROOT
 
 # It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
-# yum install -y perl
+yum install -y perl
 
 # Add hosts to cluster
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$
