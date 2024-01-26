@@ -35,6 +35,14 @@ fi
 # execution on the master SMS host.
 # -----------------------------------------------------------------------------------------
 
+# Disable firewall 
+systemctl disable firewalld
+systemctl stop firewalld
+
+yum install http://repos.openhpc.community/OpenHPC/3/EL_9/x86_64/ohpc-release-3-1.el9.x86_64.rpm
+yum install dnf-plugins-core
+yum config-manager --set-enabled crb
+
 # Verify OpenHPC repository has been enabled before proceeding
 
 yum repolist | grep -q OpenHPC
@@ -43,9 +51,6 @@ if [ $? -ne 0 ];then
    exit 1
 fi
 
-# Disable firewall 
-systemctl disable firewalld
-systemctl stop firewalld
 
 # ------------------------------------------------------------
 # Add baseline OpenHPC and provisioning services (Section 3.3)
