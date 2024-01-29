@@ -125,7 +125,7 @@ yum -y --installroot=$CHROOT install ohpc-base-compute
 # -------------------------------------------------------
 cp -p /etc/resolv.conf $CHROOT/etc/resolv.conf
 # Add SLURM and other components to compute instance
-cp /etc/passwd /etc/group  $CHROOT/etc
+\cp /etc/passwd /etc/group  $CHROOT/etc
 yum -y --installroot=$CHROOT install ohpc-slurm-client
 chroot $CHROOT systemctl enable munge
 echo SLURMD_OPTIONS="--conf-server ${sms_ip}" > $CHROOT/etc/sysconfig/slurmd
