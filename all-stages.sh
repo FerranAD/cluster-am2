@@ -1,3 +1,4 @@
+
 #!/usr/bin/bash
 # -----------------------------------------------------------------------------------------
 #  Example Installation Script Template
@@ -15,8 +16,8 @@
 # -----------------------------------------------------------------------------------------
 #
 
-# Set hostname
-echo ${sms_ip} ${sms_name} >> /etc/hosts
+# Update system
+yum update -y
 
 # Set local vars
 
@@ -29,10 +30,22 @@ else
    . ${inputFile} || { echo "Error sourcing ${inputFile}"; exit 1; }
 fi
 
+
+# Set hostname
+echo ${sms_ip} ${sms_name} >> /etc/hosts
+
 # ---------------------------- Begin OpenHPC Recipe ---------------------------------------
 # Commands below are extracted from an OpenHPC install guide recipe and are intended for 
 # execution on the master SMS host.
 # -----------------------------------------------------------------------------------------
+
+# Disable firewall 
+systemctl disable firewalld
+systemctl stop firewalld
+
+yum install -y http://repos.openhpc.community/OpenHPC/3/EL_9/x86_64/ohpc-release-3-1.el9.x86_64.rpm
+yum install -y dnf-plugins-core
+yum config-manager --set-enabled crb
 
 # Verify OpenHPC repository has been enabled before proceeding
 
@@ -42,9 +55,6 @@ if [ $? -ne 0 ];then
    exit 1
 fi
 
-# Disable firewall 
-systemctl disable firewalld
-systemctl stop firewalld
 
 # ------------------------------------------------------------
 # Add baseline OpenHPC and provisioning services (Section 3.3)
@@ -75,10 +85,10 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      perl -pi -e "s/^PartitionName=.+$/#/" /etc/slurm/slurm.conf
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
      for i in "${!cpu_name[@]}"; do
-        echo "NodeName=${node_name} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
+        echo "NodeName=${cpu_name[$i]} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
      for i in "${!gpu_name[@]}"; do
-        echo "NodeName=${node_name} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
+        echo "NodeName=${gpu_name[$i]} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
      echo "PartitionName=cpu Nodes=cpu[1-${#cpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
      echo "PartitionName=gpu Nodes=gpu[1-${#gpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
@@ -117,7 +127,7 @@ yum -y --installroot=$CHROOT install ohpc-base-compute
 # -------------------------------------------------------
 cp -p /etc/resolv.conf $CHROOT/etc/resolv.conf
 # Add SLURM and other components to compute instance
-cp /etc/passwd /etc/group  $CHROOT/etc
+\cp /etc/passwd /etc/group  $CHROOT/etc
 yum -y --installroot=$CHROOT install ohpc-slurm-client
 chroot $CHROOT systemctl enable munge
 echo SLURMD_OPTIONS="--conf-server ${sms_ip}" > $CHROOT/etc/sysconfig/slurmd
@@ -169,6 +179,9 @@ perl -pi -e "s/^uucp/\\#uucp/" $CHROOT/etc/rsyslog.conf
 # ------------------------------------------------------
 # Configure Nagios on SMS and computes (Section 3.8.4.8)
 # ------------------------------------------------------
+
+. generate-nagios-config.sh
+
 if [[ ${enable_nagios} -eq 1 ]];then
      # Install Nagios on master and vnfs image
      yum -y install --skip-broken nagios nrpe nagios-plugins-*
@@ -177,7 +190,7 @@ if [[ ${enable_nagios} -eq 1 ]];then
      perl -pi -e "s/^allowed_hosts=/# allowed_hosts=/" $CHROOT/etc/nagios/nrpe.cfg
      echo "nrpe : ${sms_ip}  : ALLOW"    >> $CHROOT/etc/hosts.allow
      echo "nrpe : ALL : DENY"            >> $CHROOT/etc/hosts.allow
-     cp /opt/ohpc/pub/examples/nagios/compute.cfg /etc/nagios/objects
+     cp compute.cfg /etc/nagios/objects
      echo "cfg_file=/etc/nagios/objects/compute.cfg" >> /etc/nagios/nagios.cfg
      perl -pi -e "s/ \/bin\/mail/ \/usr\/bin\/mailx/g" /etc/nagios/objects/commands.cfg
      perl -pi -e "s/nagios\@localhost/root\@${sms_name}/" /etc/nagios/objects/contacts.cfg
@@ -210,13 +223,16 @@ yum -y --installroot=$CHROOT install nhc-ohpc
 echo "HealthCheckProgram=/usr/sbin/nhc" >> /etc/slurm/slurm.conf
 echo "HealthCheckInterval=300" >> /etc/slurm/slurm.conf  # execute every five minutes
 
+# It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
+yum install -y perl
+
 # ----------------------------
 # Import files (Section 3.8.5)
 # ----------------------------
-wwsh file import /etc/passwd
-wwsh file import /etc/group
-wwsh file import /etc/shadow 
-wwsh file import /etc/munge/munge.key
+wwsh file import /etc/passwd -y
+wwsh file import /etc/group -y
+wwsh file import /etc/shadow  -y
+wwsh file import /etc/munge/munge.key -y
 
 # --------------------------------------
 # Assemble bootstrap image (Section 3.9)
@@ -227,8 +243,6 @@ wwbootstrap `uname -r`
 # Assemble VNFS
 wwvnfs --chroot $CHROOT
 
-# It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
-yum install -y perl
 
 # Add hosts to cluster
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$
@@ -266,6 +280,7 @@ for i in "${!cpu_name[@]}"; do
     fi
 done
 
+echo "\n\nDone! Boot compute nodes and once they are up, run stage2.sh. Use status.sh to check on the nodes."
 
 # ---------------------------------------
 # Install Development Tools (Section 4.1)
@@ -327,11 +342,6 @@ if [[ ${enable_intel_packages} -eq 1 ]];then
      yum -y install ohpc-intel-openmpi4-parallel-libs
      yum -y install ohpc-intel-impi-parallel-libs
 fi
-
-# -------------------------------------------------------------
-# Allow for optional sleep to wait for provisioning to complete
-# -------------------------------------------------------------
-sleep ${provision_wait}
 
 # ------------------------------------
 # Resource Manager Startup (Section 5)
