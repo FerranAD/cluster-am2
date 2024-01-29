@@ -252,13 +252,13 @@ wwsh -y file set network --path /etc/sysconfig/network --mode=0644 --uid=0
 for ((i=0; i<${#cpu_name[@]}; i++)); do
     wwsh -y node new "${cpu_name[$i]}" --ipaddr="${cpu_ip[$i]}" --hwaddr="${cpu_mac[$i]}" -D ${eth_provision}
     wwsh provision set --postnetdown=1 "${cpu_name[$i]}" -y
-    wwsh provision set "${cpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network
+    wwsh provision set "${cpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network -y
 done
 
 for ((i=0; i<${#gpu_name[@]}; i++)); do
     wwsh -y node new "${gpu_name[$i]}" --ipaddr="${gpu_ip[$i]}" --hwaddr="${gpu_mac[$i]}" -D ${eth_provision}
     wwsh provision set --postnetdown=1 "${gpu_name[$i]}" -y
-    wwsh provision set "${gpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network
+    wwsh provision set "${gpu_name[$i]}" --vnfs=rocky9.2 --bootstrap=`uname -r` --files=dynamic_hosts,passwd,group,shadow,munge.key,network -y
 done
 
 
