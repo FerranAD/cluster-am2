@@ -16,8 +16,6 @@
 # -----------------------------------------------------------------------------------------
 #
 
-# Set hostname
-echo ${sms_ip} ${sms_name} >> /etc/hosts
 
 # Set local vars
 
@@ -29,6 +27,10 @@ if [ ! -e ${inputFile} ];then
 else
    . ${inputFile} || { echo "Error sourcing ${inputFile}"; exit 1; }
 fi
+
+
+# Set hostname
+echo ${sms_ip} ${sms_name} >> /etc/hosts
 
 # ---------------------------- Begin OpenHPC Recipe ---------------------------------------
 # Commands below are extracted from an OpenHPC install guide recipe and are intended for 
@@ -80,7 +82,7 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      perl -pi -e "s/^NodeName=.+$/#/" /etc/slurm/slurm.conf
      perl -pi -e "s/^PartitionName=.+$/#/" /etc/slurm/slurm.conf
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
-     for i in "${!cpu_name[@]}"; do
+     for node_name in "${!cpu_name[@]}"; do
         echo "NodeName=${node_name} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
      for i in "${!gpu_name[@]}"; do
