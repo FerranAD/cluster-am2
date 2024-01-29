@@ -232,7 +232,7 @@ yum install -y perl
 wwsh file import /etc/passwd -y
 wwsh file import /etc/group -y
 wwsh file import /etc/shadow  -y
-wwsh file import /etc/munge/munge.key -y
+wwsh file import /etc/munge/munge.key
 
 # --------------------------------------
 # Assemble bootstrap image (Section 3.9)
@@ -248,6 +248,10 @@ wwvnfs --chroot $CHROOT
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$
 wwsh -y file import /tmp/network.$$ --name network
 wwsh -y file set network --path /etc/sysconfig/network --mode=0644 --uid=0
+
+# Re-assign ip just in case
+ip link set dev ${sms_eth_internal} up
+ip address add ${sms_ip}/${internal_netmask} broadcast + dev ${sms_eth_internal}
 
 for ((i=0; i<${#cpu_name[@]}; i++)); do
     wwsh -y node new "${cpu_name[$i]}" --ipaddr="${cpu_ip[$i]}" --hwaddr="${cpu_mac[$i]}" -D ${eth_provision}
@@ -279,5 +283,7 @@ for i in "${!cpu_name[@]}"; do
         wwsh -y provision set "${cpu_name[$i]}" --kargs="${kargs}"
     fi
 done
+
+cd
 
 echo "\n\nDone! Boot compute nodes and once they are up, run stage2.sh. Use status.sh to check on the nodes."
