@@ -187,7 +187,7 @@ if [[ ${enable_nagios} -eq 1 ]];then
      perl -pi -e "s/^allowed_hosts=/# allowed_hosts=/" $CHROOT/etc/nagios/nrpe.cfg
      echo "nrpe : ${sms_ip}  : ALLOW"    >> $CHROOT/etc/hosts.allow
      echo "nrpe : ALL : DENY"            >> $CHROOT/etc/hosts.allow
-     cp /opt/ohpc/pub/examples/nagios/compute.cfg /etc/nagios/objects
+     cp compute.cfg /etc/nagios/objects
      echo "cfg_file=/etc/nagios/objects/compute.cfg" >> /etc/nagios/nagios.cfg
      perl -pi -e "s/ \/bin\/mail/ \/usr\/bin\/mailx/g" /etc/nagios/objects/commands.cfg
      perl -pi -e "s/nagios\@localhost/root\@${sms_name}/" /etc/nagios/objects/contacts.cfg
@@ -220,13 +220,16 @@ yum -y --installroot=$CHROOT install nhc-ohpc
 echo "HealthCheckProgram=/usr/sbin/nhc" >> /etc/slurm/slurm.conf
 echo "HealthCheckInterval=300" >> /etc/slurm/slurm.conf  # execute every five minutes
 
+# It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
+yum install -y perl
+
 # ----------------------------
 # Import files (Section 3.8.5)
 # ----------------------------
-wwsh file import /etc/passwd
-wwsh file import /etc/group
-wwsh file import /etc/shadow 
-wwsh file import /etc/munge/munge.key
+wwsh file import /etc/passwd -y
+wwsh file import /etc/group -y
+wwsh file import /etc/shadow  -y
+wwsh file import /etc/munge/munge.key -y
 
 # --------------------------------------
 # Assemble bootstrap image (Section 3.9)
@@ -237,8 +240,6 @@ wwbootstrap `uname -r`
 # Assemble VNFS
 wwvnfs --chroot $CHROOT
 
-# It might be necessary to reinstall perl if "Could not find syscall.ph", if so, run:
-yum install -y perl
 
 # Add hosts to cluster
 echo "GATEWAYDEV=${eth_provision}" > /tmp/network.$$
