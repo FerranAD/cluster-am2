@@ -82,11 +82,11 @@ if [[ ${update_slurm_nodeconfig} -eq 1 ]];then
      perl -pi -e "s/^NodeName=.+$/#/" /etc/slurm/slurm.conf
      perl -pi -e "s/^PartitionName=.+$/#/" /etc/slurm/slurm.conf
      echo -e ${slurm_node_config} >> /etc/slurm/slurm.conf
-     for node_name in "${!cpu_name[@]}"; do
-        echo "NodeName=${node_name} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
+     for i in "${!cpu_name[@]}"; do
+        echo "NodeName=${cpu_name[$i]} Sockets=2 CoresPerSocket=6 ThreadsPerCore=1 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
      for i in "${!gpu_name[@]}"; do
-        echo "NodeName=${node_name} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
+        echo "NodeName=${gpu_name[$i]} Sockets=1 CoresPerSocket=8 ThreadsPerCore=2 State=UNKNOWN" >> /etc/slurm/slurm.conf
      done
      echo "PartitionName=cpu Nodes=cpu[1-${#cpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
      echo "PartitionName=gpu Nodes=gpu[1-${#gpu_name[@]}] Default=NO MaxTime=UNLIMITED State=UP Oversubscribe=EXCLUSIVE" >> /etc/slurm/slurm.conf
