@@ -1,4 +1,4 @@
-
+source input.local
 # ---------------------------------------
 # Install Development Tools (Section 4.1)
 # ---------------------------------------
@@ -57,12 +57,12 @@ if [[ ${enable_intel_packages} -eq 1 ]];then
      yum -y install ohpc-intel-mpich-parallel-libs
      yum -y install ohpc-intel-mvapich2-parallel-libs
      yum -y install ohpc-intel-openmpi4-parallel-libs
-     yum -y install ohpc-intel-impi-parallel-libs
 fi
 
 # ------------------------------------
 # Resource Manager Startup (Section 5)
 # ------------------------------------
+hostnamectl set-hostname am2.udl.cat
 systemctl enable munge
 systemctl enable slurmctld
 systemctl start munge
@@ -71,13 +71,13 @@ systemctl start slurmctld
 for i in "${!cpu_name[@]}"; do
      pdsh -w ${cpu_name[$i]} systemctl start munge
      pdsh -w ${cpu_name[$i]} systemctl start slurmd
-     pdsh -w ${cpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+     pdsh -w ${cpu_name[$i]} "/usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
 for i in "${!gpu_name[@]}"; do
      pdsh -w ${gpu_name[$i]} systemctl start munge
      pdsh -w ${gpu_name[$i]} systemctl start slurmd
-     pdsh -w ${gpu_name[$i]} "usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
+     pdsh -w ${gpu_name[$i]} "/usr/sbin/nhc-genconf -H '*' -c -" | dshbak -c
 done
 
 useradd -m test
