@@ -38,6 +38,8 @@ kargs="acpi_pad.disable=1"
 # -------------------------
 # compute node settings
 # -------------------------
+gpu_prefix="gpu"
+cpu_prefix="cpu"
 
 # CPU nodes
 cpu_name=()
