@@ -179,6 +179,9 @@ perl -pi -e "s/^uucp/\\#uucp/" $CHROOT/etc/rsyslog.conf
 # ------------------------------------------------------
 # Configure Nagios on SMS and computes (Section 3.8.4.8)
 # ------------------------------------------------------
+
+. generate-nagios-config.sh
+
 if [[ ${enable_nagios} -eq 1 ]];then
      # Install Nagios on master and vnfs image
      yum -y install --skip-broken nagios nrpe nagios-plugins-*
