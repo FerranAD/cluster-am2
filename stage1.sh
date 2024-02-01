@@ -250,8 +250,8 @@ wwsh -y file import /tmp/network.$$ --name network
 wwsh -y file set network --path /etc/sysconfig/network --mode=0644 --uid=0
 
 # Re-assign ip just in case
-ip link set dev ${sms_eth_internal} up
 ip address add ${sms_ip}/${internal_netmask} broadcast + dev ${sms_eth_internal}
+systemctl restart dhcpd
 
 for ((i=0; i<${#cpu_name[@]}; i++)); do
     wwsh -y node new "${cpu_name[$i]}" --ipaddr="${cpu_ip[$i]}" --hwaddr="${cpu_mac[$i]}" -D ${eth_provision}
