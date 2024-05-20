@@ -43,3 +43,6 @@ Our setup assumes you start from a system with Rocky Linux 9.X installed. The se
  
 The first script sets up the whole cluster architecture, while the second one installs packages and comunicates the slaves with the master.
 __NOTE: You are expected to power up slave nodes between both scripts.__
+
+![qstat to slurm command reference](chuleta.jpeg)
+
