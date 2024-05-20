@@ -44,5 +44,7 @@ Our setup assumes you start from a system with Rocky Linux 9.X installed. The se
 The first script sets up the whole cluster architecture, while the second one installs packages and comunicates the slaves with the master.
 __NOTE: You are expected to power up slave nodes between both scripts.__
 
-![qstat to slurm command reference](chuleta.jpeg)
+[Link](https://github.com/openhpc/ohpc/releases/download/v2.8.GA/Install_guide-Rocky8-Warewulf-SLURM-2.8-x86_64.pdf) to install guide followed.
+
+![qstat to slurm command reference](chuleta.png)
 
