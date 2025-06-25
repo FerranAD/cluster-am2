@@ -48,3 +48,13 @@ __NOTE: You are expected to power up slave nodes between both scripts.__
 
 ![qstat to slurm command reference](chuleta.png)
 
+
+# Available scripts
+- `stage1.sh` and `stage2.sh` - Scripts to install cluster. Shouldn't be run unless reinstalling the cluster.
+
+- `status.sh` - Script to check the status on the cluster. All desired machines should be up.
+- `start-machines.sh` - Once the server is up, and the compute nodes too, and its connection has been established and checked with `status.sh`, this script will start the machines the needed services and sync needed files.
+
+# Problems
+- If for any reason the compute nodes are started but not booting up after some time, run `systemctl restart dhcpd` on the master node.
+- If that doesn't work, run `fix-dhcp.sh`.
