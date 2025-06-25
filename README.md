@@ -54,6 +54,7 @@ __NOTE: You are expected to power up slave nodes between both scripts.__
 
 - `status.sh` - Script to check the status on the cluster. All desired machines should be up.
 - `start-machines.sh` - Once the server is up, and the compute nodes too, and its connection has been established and checked with `status.sh`, this script will start the machines the needed services and sync needed files.
+- `add-new-machines.sh` - If you add a new machine to the cluster, run this script to add it to the cluster after modifying `input.local` accordingly.
 
 # Problems
 - If for any reason the compute nodes are started but not booting up after some time, run `systemctl restart dhcpd` on the master node.
